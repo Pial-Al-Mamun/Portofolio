@@ -1,31 +1,47 @@
-from typing import Annotated
+from typing import Annotated, AsyncGenerator
 from fastapi import Depends
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session, declarative_base, DeclarativeBase
-from typing import Generator
 
+from sqlalchemy.ext.asyncio import (
+    create_async_engine,
+    AsyncSession,
+    async_sessionmaker,
+    AsyncAttrs,
+)
+
+from sqlalchemy.orm import DeclarativeBase
 from dotenv import load_dotenv
 import os
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+# change url to make async request with sqlalchemy
+DATABASE_URL = (
+    os.getenv("DATABASE_URL").replace("postgresql://", "postgresql+asyncpg://", 1)
+    if os.getenv("DATABASE_URL")
+    else None
+)
 
-engine = create_engine(DATABASE_URL)
+engine = create_async_engine(DATABASE_URL, echo=True)
+
+AsyncSessionLocal = async_sessionmaker(
+    bind=engine,
+    class_=AsyncSession,
+    autocommit=False,
+    autoflush=False,
+    expire_on_commit=False,
+)
 
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+class Base(AsyncAttrs, DeclarativeBase):
+    pass
 
 
-Base: DeclarativeBase = declarative_base()
+async def get_async_db() -> AsyncGenerator[AsyncSession, None]:
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+        finally:
+            await session.close()
 
 
-def get_db() -> Generator[Session, None, None]:
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-db_session_dependency = Annotated[Session, Depends(get_db)]
+AsyncDBSession = Annotated[AsyncSession, Depends(get_async_db)]
