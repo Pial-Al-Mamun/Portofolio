@@ -8,6 +8,7 @@ class ErrorMessage(StrEnum):
     USER_ALREADY_EXISTS = "User already exists"
     USER_NOT_FOUND = "User not found"
     PASSWORD_INCORRECT = "Password is incorrect"
+    
 
 
 error_http_status_map = {

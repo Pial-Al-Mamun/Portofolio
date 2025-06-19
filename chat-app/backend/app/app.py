@@ -6,7 +6,6 @@ from routes.login import router as login_router
 from routes.signup import router as signup_router
 
 
-
 app = FastAPI()
 
 origins = [

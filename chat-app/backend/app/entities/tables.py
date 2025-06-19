@@ -4,7 +4,7 @@ from enum import StrEnum
 from uuid import uuid4
 from ulid import ULID
 from datetime import datetime as dt, timezone
-from ..database.core import Base
+from app.database.core import Base
 
 
 friend_association = Table(

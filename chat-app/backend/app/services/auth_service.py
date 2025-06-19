@@ -1,13 +1,13 @@
-from ..schemas.auth.request import LoginUser, RegisteringUser
-from .security_service import SecurityService
-from ..entities.tables import User
-from ..database.core import get_async_db
-from ..DI.dependencies import get_security_service
-from ..exception import ErrorMessage
+from app.schemas.auth.request import LoginUser
+from app.schemas.auth.request import RegisteringUser
+from app.entities.tables import User
+from app.database.core import get_async_db
+from app.exceptions.exception import ErrorMessage
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from fastapi import Depends
+from passlib.context import CryptContext
 from typing import Optional
 
 
@@ -15,13 +15,12 @@ class AuthService:
     def __init__(
         self,
         db: AsyncSession = Depends(get_async_db),
-        security_service: SecurityService = Depends(get_security_service),
     ):
         self.db = db
-        self.security = security_service
+        self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
     async def signup_user(self, user: RegisteringUser) -> Optional[ErrorMessage]:
-        """Returns User if created, None if email exists"""
+        """Returns ErrorMessage if error happens else return none if task is successfull"""
 
         existing_user = await self.db.execute(
             select(User).where(User.email == user.email)
@@ -30,7 +29,7 @@ class AuthService:
         if existing_user.scalar_one_or_none():
             return ErrorMessage.USER_ALREADY_EXISTS
 
-        hashed = self.security.hash_password(user.password)
+        hashed = self.pwd_context.hash(user.password)
 
         new_user = User(
             email=user.email, username=user.username, hashed_password=hashed
@@ -40,8 +39,8 @@ class AuthService:
         await self.db.commit()
         await self.db.refresh(new_user)
 
-    async def login_user(self, credentials: LoginUser) -> str | ErrorMessage:
-        """Returns token if auth is valid, otherwise return an string Enum with error details"""
+    async def login_user(self, credentials: LoginUser) -> User | ErrorMessage:
+        """Returns the User object, otherwise return a StrEnum with error details"""
 
         result = await self.db.execute(
             select(User).where(User.email == credentials.email)
@@ -52,10 +51,7 @@ class AuthService:
         if not user:
             return ErrorMessage.USER_NOT_FOUND
 
-        if not self.security.verify_password(
-            credentials.password, user.hashed_password
-        ):
+        if not self.pwd_context.verify(credentials.password, user.password):
             return ErrorMessage.PASSWORD_INCORRECT
 
-        token = self.security.create_access_token(user.id)
-        return token
+        return user

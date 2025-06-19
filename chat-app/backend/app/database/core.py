@@ -10,12 +10,12 @@ from sqlalchemy.ext.asyncio import (
 
 from sqlalchemy.orm import DeclarativeBase
 from dotenv import load_dotenv
-from ..config import Config
+from ..config import env
 
 load_dotenv()
 
 # change url to make async request with sqlalchemy
-DATABASE_URL = Config.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
+DATABASE_URL = env.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
 
 
 engine = create_async_engine(DATABASE_URL, echo=True)

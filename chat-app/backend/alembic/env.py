@@ -1,23 +1,19 @@
-import os
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config, pool
 from alembic import context
 
 from app.database.core import Base
-
-from dotenv import load_dotenv
-
-load_dotenv()
+from app.config import env
 
 # Load Alembic config
 config = context.config
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = env.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
+
 if not DATABASE_URL:
     raise Exception("DATABASE_URL environment variable is not set.")
 
-# Inject it into Alembic config so it can be used downstream
 config.set_main_option("sqlalchemy.url", DATABASE_URL.replace("%", "%%"))
 
 
