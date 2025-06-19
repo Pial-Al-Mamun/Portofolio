@@ -1,6 +1,6 @@
-from app.schemas.auth.request import LoginUser
-from app.DI.dependencies import AuthServiceSession
-from app.exceptions.exception import ErrorMessage, error_http_status_map
+from ..schemas.auth.request import LoginUser
+from ..DI.dependencies import AuthServiceSession
+from ..exceptions.exception import ErrorMessage, error_http_status_map
 
 from fastapi import APIRouter
 from fastapi import HTTPException
@@ -25,6 +25,5 @@ async def login(
             status_code=error_http_status_map.get(result, status.HTTP_400_BAD_REQUEST),
             detail=result.value,
         )
-
 
     return {"access_token": result, "token_type": "bearer"}

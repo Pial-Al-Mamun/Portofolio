@@ -1,21 +1,16 @@
-from app.schemas.auth.request import LoginUser
-from app.schemas.auth.request import RegisteringUser
-from app.entities.tables import User
-from app.database.core import get_async_db
-from app.exceptions.exception import ErrorMessage
+from ..schemas.auth.request import LoginUser
+from ..schemas.auth.request import RegisteringUser
+from ..entities.tables import User
+from ..exceptions.exception import ErrorMessage
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from fastapi import Depends
 from passlib.context import CryptContext
 from typing import Optional
 
 
 class AuthService:
-    def __init__(
-        self,
-        db: AsyncSession = Depends(get_async_db),
-    ):
+    def __init__(self, db: AsyncSession):
         self.db = db
         self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
