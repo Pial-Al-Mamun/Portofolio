@@ -1,17 +1,15 @@
 from .schemas import LoginUser, RegisteringUser
 from app.exception import UserAlreadyExists, PasswordIncorrect, UserNotFound
 from app.entities.tables import User
+from app.database.core import AsyncDBSession
 
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from passlib.context import CryptContext
-from typing import Optional
-from typing import Annotated
 from fastapi import Depends
 
 
 class AuthService:
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: AsyncDBSession):
         self.db = db
         self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -35,7 +33,7 @@ class AuthService:
         await self.db.commit()
         await self.db.refresh(new_user)
 
-    async def login_user(self, credentials: LoginUser) -> Optional[User]:
+    async def login_user(self, credentials: LoginUser) -> User:
         """Returns the User object, otherwise return a StrEnum with error details"""
 
         result = await self.db.execute(
@@ -53,4 +51,7 @@ class AuthService:
         return user
 
 
-AuthServiceSession = Annotated[AuthService, Depends(AuthService)]
+def get_auth_service(db: AsyncDBSession = Depends()) -> AuthService:
+    return AuthService(db)
+
+
