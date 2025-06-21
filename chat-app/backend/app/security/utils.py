@@ -1,21 +1,14 @@
-import logging
 import uuid
-from datetime import datetime, timedelta
-from itsdangerous import URLSafeTimedSerializer
+import logging
+from datetime import datetime, timedelta, timezone
+from typing import Optional, Any
 
 import jwt
 from passlib.context import CryptContext
 
 from ..config import env
 
-from typing import Any
-from typing import Optional
-
 passwd_context = CryptContext(schemes=["bcrypt"])
-
-
-ACCESS_TOKEN_EXPIRY = 60 * 60 * 24  # 1 Day
-REFRESH_TOKEN_EXPIRY = 60 * 60 * 24 * 3  # 3 Day
 
 
 def generate_passwd_hash(password: str) -> str:
@@ -26,48 +19,40 @@ def verify_password(password: str, hash: str) -> bool:
     return passwd_context.verify(password, hash)
 
 
-def create_access_token(
-    user_id: int, expiry: timedelta | None = None, refresh: bool = False
-) -> str:
+# Token expiry durations
+ACCESS_TOKEN_EXPIRE_SECONDS = 60 * 15  # 15 minutes
+REFRESH_TOKEN_EXPIRE_SECONDS = 60 * 60 * 24 * 7  # 7 days
+
+
+def create_jwt_token(user_id: int, expiry_seconds: int, refresh: bool = False) -> str:
     payload: dict[str, Any] = {
         "user_id": user_id,
-        "exp": datetime.now()
-        + (expiry if expiry is not None else timedelta(seconds=ACCESS_TOKEN_EXPIRY)),
+        "exp": datetime.now(timezone.utc) + timedelta(seconds=expiry_seconds),
         "jti": str(uuid.uuid4()),
         "refresh": refresh,
     }
 
-    token = jwt.encode(
-        payload=payload, key=env.JWT_SECRET, algorithm=env.JWT_ALGORITHM
+    return jwt.encode(
+        payload=payload, key=env.JWT_SECRET_KEY, algorithm=env.JWT_ALGORITHM
     )
 
-    return token
+
+def create_access_token(user_id: int) -> str:
+    return create_jwt_token(user_id, ACCESS_TOKEN_EXPIRE_SECONDS, refresh=False)
+
+
+def create_refresh_token(user_id: int) -> str:
+    return create_jwt_token(user_id, REFRESH_TOKEN_EXPIRE_SECONDS, refresh=True)
 
 
 def decode_token(token: str) -> Optional[dict[str, Any]]:
     try:
-        token_data = jwt.decode(
-            jwt=token, key=env.JWT_SECRET, algorithms=[env.JWT_ALGORITHM]
-        )
-        return token_data
-    except jwt.PyJWTError as e:
-        logging.exception(e)
-        return None
-
-
-serializer = URLSafeTimedSerializer(secret_key=env.JWT_SECRET, salt="")
-
-
-def create_url_safe_token(data: dict[str, Any]):
-    token = serializer.dumps(data)
-    return token
-
-
-def decode_url_safe_token(token: str):
-    try:
-        token_data = serializer.loads(token)
-
-        return token_data
-
+        return jwt.decode(token, key=env.JWT_SECRET_KEY, algorithms=[env.JWT_ALGORITHM])
+    except jwt.ExpiredSignatureError:
+        logging.warning("Token expired")
+    except jwt.InvalidTokenError:
+        logging.warning("Invalid token")
     except Exception as e:
-        logging.error(str(e))
+        logging.exception(e)
+
+    return None
