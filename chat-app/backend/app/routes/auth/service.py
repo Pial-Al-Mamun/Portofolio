@@ -1,11 +1,13 @@
 from .schemas import LoginUser, RegisteringUser
-from  app.exception import UserAlreadyExists, PasswordIncorrect, UserNotFound
+from app.exception import UserAlreadyExists, PasswordIncorrect, UserNotFound
 from app.entities.tables import User
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from passlib.context import CryptContext
 from typing import Optional
+from typing import Annotated
+from fastapi import Depends
 
 
 class AuthService:
@@ -14,7 +16,7 @@ class AuthService:
         self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
     async def signup_user(self, user: RegisteringUser) -> None:
-        """Returns ErrorMessage if error happens else """
+        """Returns ErrorMessage if error happens else"""
 
         existing_user = await self.db.execute(
             select(User).where(User.email == user.email)
@@ -33,7 +35,7 @@ class AuthService:
         await self.db.commit()
         await self.db.refresh(new_user)
 
-    async def login_user(self, credentials: LoginUser) -> Optional[User] :
+    async def login_user(self, credentials: LoginUser) -> Optional[User]:
         """Returns the User object, otherwise return a StrEnum with error details"""
 
         result = await self.db.execute(
@@ -49,3 +51,6 @@ class AuthService:
             raise PasswordIncorrect()
 
         return user
+
+
+AuthServiceSession = Annotated[AuthService, Depends(AuthService)]

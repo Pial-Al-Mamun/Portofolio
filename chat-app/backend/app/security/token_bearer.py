@@ -5,7 +5,9 @@ from fastapi.security.http import HTTPAuthorizationCredentials
 from fastapi import HTTPException
 from fastapi import status
 
-from app.exceptions.exception import InvalidToken
+from app.exception import InvalidToken
+from app.exception import AccessTokenRequired
+from app.exception import RefreshTokenRequired
 from .utils import decode_token
 
 from typing import Optional
@@ -41,3 +43,15 @@ class TokenBearer(HTTPBearer, ABC):
     @abstractmethod
     def verify_token_data(self, token_data: dict[str, Any]):
         pass
+
+
+class AccessTokenBearer(TokenBearer):
+    def verify_token_data(self, token_data: dict[str, Any]) -> None:
+        if token_data and token_data["refresh"]:
+            raise AccessTokenRequired()
+
+
+class RefreshTokenBearer(TokenBearer):
+    def verify_token_data(self, token_data: dict[str, Any]) -> None:
+        if token_data and not token_data["refresh"]:
+            raise RefreshTokenRequired()

@@ -1,0 +1,32 @@
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: "./backend/dockerfile"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/app:/app:ro
+    depends_on:
+      - postgres_db
+      - backend
+
+  postgres_db:
+
+    image: postgres
+    restart: always
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+    ports:
+      - 5432:5432
+  
+
+  # frontend:
+  #   build:
+  #     context: ./frontend/dockerfile
+  #     dockerfile: dockerfile
+  #   ports:
+  #     - 5178:5178
