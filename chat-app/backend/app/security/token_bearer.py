@@ -5,6 +5,7 @@ from fastapi.security.http import HTTPAuthorizationCredentials
 from fastapi import HTTPException
 from fastapi import status
 
+from app.exceptions.exception import InvalidToken
 from .utils import decode_token
 
 from typing import Optional
@@ -19,6 +20,9 @@ class TokenBearer(HTTPBearer, ABC):
         self, request: Request
     ) -> Optional[HTTPAuthorizationCredentials]:
         creds = await super().__call__(request)
+
+        if creds is None:
+            return
 
         token = creds.credentials
 

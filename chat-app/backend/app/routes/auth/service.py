@@ -1,7 +1,6 @@
-from ..schemas.auth.request import LoginUser
-from ..schemas.auth.request import RegisteringUser
-from ..entities.tables import User
-from ..exceptions.exception import ErrorMessage
+from .schemas import LoginUser, RegisteringUser
+from  app.exception import UserAlreadyExists, PasswordIncorrect, UserNotFound
+from app.entities.tables import User
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -14,15 +13,15 @@ class AuthService:
         self.db = db
         self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-    async def signup_user(self, user: RegisteringUser) -> Optional[ErrorMessage]:
-        """Returns ErrorMessage if error happens else return none if task is successfull"""
+    async def signup_user(self, user: RegisteringUser) -> None:
+        """Returns ErrorMessage if error happens else """
 
         existing_user = await self.db.execute(
             select(User).where(User.email == user.email)
         )
 
         if existing_user.scalar_one_or_none():
-            return ErrorMessage.USER_ALREADY_EXISTS
+            raise UserAlreadyExists()
 
         hashed = self.pwd_context.hash(user.password)
 
@@ -34,7 +33,7 @@ class AuthService:
         await self.db.commit()
         await self.db.refresh(new_user)
 
-    async def login_user(self, credentials: LoginUser) -> User | ErrorMessage:
+    async def login_user(self, credentials: LoginUser) -> Optional[User] :
         """Returns the User object, otherwise return a StrEnum with error details"""
 
         result = await self.db.execute(
@@ -44,9 +43,9 @@ class AuthService:
         user = result.scalar_one_or_none()
 
         if not user:
-            return ErrorMessage.USER_NOT_FOUND
+            raise UserNotFound()
 
         if not self.pwd_context.verify(credentials.password, user.password):
-            return ErrorMessage.PASSWORD_INCORRECT
+            raise PasswordIncorrect()
 
         return user
