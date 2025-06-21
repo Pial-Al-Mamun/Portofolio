@@ -12,6 +12,16 @@ from .utils import decode_token
 
 from typing import Optional
 from typing import Any
+from typing import TypedDict
+
+
+class JWTPayload(TypedDict):
+    message: str
+    access_token: str
+    refresh_token: str
+
+class TokenData(TypedDict):
+    pass
 
 
 class TokenBearer(HTTPBearer, ABC):
@@ -34,7 +44,6 @@ class TokenBearer(HTTPBearer, ABC):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid or expired token",
-                headers={"WWW-Authenticate": "Bearer"},
             )
 
         if not self.verify_token_data(token_data):

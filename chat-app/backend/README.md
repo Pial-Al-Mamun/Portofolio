@@ -1,0 +1,1 @@
+to start the app you need to install (uv package manager)[https://docs.astral.sh/uv/getting-started/installation/]

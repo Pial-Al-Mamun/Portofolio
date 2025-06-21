@@ -4,19 +4,8 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional, Any
 
 import jwt
-from passlib.context import CryptContext
 
 from ..config import env
-
-passwd_context = CryptContext(schemes=["bcrypt"])
-
-
-def generate_passwd_hash(password: str) -> str:
-    return passwd_context.hash(password)
-
-
-def verify_password(password: str, hash: str) -> bool:
-    return passwd_context.verify(password, hash)
 
 
 # Token expiry durations
